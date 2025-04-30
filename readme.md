@@ -1,4 +1,4 @@
-# AI Form Filler Chrome Extension
+# FormBot Chrome Extension
 
 A Chrome extension that helps you automatically fill out web forms using AI models (OpenAI's GPT or Anthropic's Claude).
 

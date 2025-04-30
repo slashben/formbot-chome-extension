@@ -1,4 +1,4 @@
-// Form Session Management for AI Form Filler
+// Form Session Management for FormBot
 
 /**
  * Class to manage a form filling session

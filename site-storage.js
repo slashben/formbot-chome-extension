@@ -1,4 +1,4 @@
-// Site-specific storage utility for AI Form Filler
+// Site-specific storage utility for FormBot
 
 /**
  * Utility class for managing site-specific storage
