@@ -22,6 +22,12 @@ chrome.runtime.onInstalled.addListener((details) => {
     title: "Fill this field with FormBot",
     contexts: ["editable"]
   });
+
+  chrome.contextMenus.create({
+    id: "expandDraft",
+    title: "Expand this draft with FormBot",
+    contexts: ["selection", "editable"]
+  });
 });
 
 // Handle context menu clicks
@@ -33,21 +39,135 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   } else if (info.menuItemId === "fillFormField") {
     // Send message to content script to fill the field
     chrome.tabs.sendMessage(tab.id, {action: "fillCurrentField"});
+  } else if (info.menuItemId === "expandDraft") {
+    // Send message to content script to expand the draft
+    chrome.tabs.sendMessage(tab.id, {action: "expandDraft", draft: info.selectionText});
   }
 });
 
 // Listen for message from content script
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+  console.log('Background received message:', {
+    action: request.action,
+    tabId: sender.tab?.id,
+    frameId: sender.frameId,
+    url: sender.url,
+    timestamp: new Date().toISOString()
+  });
+
+  // Create a wrapper for sendResponse that logs the response
+  const wrappedSendResponse = (response) => {
+    console.log('Background sending response:', {
+      action: request.action,
+      tabId: sender.tab?.id,
+      frameId: sender.frameId,
+      response: response,
+      timestamp: new Date().toISOString()
+    });
+    sendResponse(response);
+  };
+
   if (request.action === "getAiCompletion") {
     handleAiCompletion(request.fieldInfo)
-      .then(response => sendResponse(response))
-      .catch(error => sendResponse({error: error.message}));
+      .then(response => {
+        wrappedSendResponse({success: true, text: response});
+      })
+      .catch(error => {
+        console.error("AI Completion Error:", error);
+        wrappedSendResponse({success: false, error: error.message});
+      });
     return true; // Keep the message channel open for async response
   } else if (request.action === "getSelectedText") {
-    sendResponse({text: selectedText});
-    return true;
+    wrappedSendResponse({text: selectedText});
+    return false; // No need to keep channel open
+  } else if (request.action === "debugTest") {
+    console.log('Debug test received:', request.data);
+    wrappedSendResponse({success: true, message: "Debug test successful"});
+    return false; // No need to keep channel open
+  } else if (request.action === "getSiteContext") {
+    getSiteContext(sender.tab.url)
+      .then(context => {
+        wrappedSendResponse({success: true, context: context});
+      })
+      .catch(error => {
+        console.error("Site Context Error:", error);
+        wrappedSendResponse({success: false, error: error.message});
+      });
+    return true; // Keep the message channel open for async response
+  } else if (request.action === "saveSiteContext") {
+    saveSiteContext(sender.tab.url, request.key, request.data)
+      .then(() => {
+        wrappedSendResponse({success: true});
+      })
+      .catch(error => {
+        console.error("Save Site Context Error:", error);
+        wrappedSendResponse({success: false, error: error.message});
+      });
+    return true; // Keep the message channel open for async response
+  } else if (request.action === "getCurrentSession") {
+    wrappedSendResponse({
+      hasActiveSession: currentFormSession !== null,
+      sessionId: currentFormSession ? currentFormSession.id : null
+    });
+    return false; // No need to keep channel open
+  } else if (request.action === "startNewSession") {
+    startNewFormSession();
+    wrappedSendResponse({success: true, message: "New form session started"});
+    return false; // No need to keep channel open
+  } else if (request.action === "endCurrentSession") {
+    if (currentFormSession) {
+      currentFormSession.endSession();
+      currentFormSession = null;
+      wrappedSendResponse({success: true, message: "Form session ended"});
+    } else {
+      wrappedSendResponse({success: false, message: "No active form session"});
+    }
+    return false; // No need to keep channel open
   }
 });
+
+
+  // Domain context storage
+  async function getDomainFromUrl(url) {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.hostname;
+    } catch (e) {
+      console.error('Error parsing URL:', e);
+      return 'unknown-domain';
+    }
+  }
+
+  async function getSiteContext(url) {
+    const domain = await getDomainFromUrl(url);
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.get([`siteContext:${domain}`], (result) => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve(result[`siteContext:${domain}`] || {});
+        }
+      });
+    });
+  }
+
+  async function saveSiteContext(url, key, data) {
+    const domain = await getDomainFromUrl(url);
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.get([`siteContext:${domain}`], (result) => {
+        const context = result[`siteContext:${domain}`] || {};
+        context[key] = data;
+
+        chrome.storage.local.set({ [`siteContext:${domain}`]: context }, () => {
+          if (chrome.runtime.lastError) {
+            reject(chrome.runtime.lastError);
+          } else {
+            resolve();
+          }
+        });
+      });
+    });
+  }
 
 // Handle API calls to AI services
 async function handleAiCompletion(fieldInfo) {
@@ -72,7 +192,7 @@ async function handleAiCompletion(fieldInfo) {
       throw new Error("Unsupported API type");
     }
 
-    return {text: response};
+    return response; // Return just the text, not an object
   } catch (error) {
     console.error("AI Completion Error:", error);
     throw error;
@@ -103,6 +223,7 @@ function createPrompt(fieldInfo) {
     prompt += "Please provide an answer to this specific question.\n";
   } else {
     prompt += "These are the identifiers of the form field:\n";
+    prompt += `The HTML element is: <${fieldInfo.tagName}${fieldInfo.type ? ` type="${fieldInfo.type}"` : ''}${fieldInfo.name ? ` name="${fieldInfo.name}"` : ''}${fieldInfo.id ? ` id="${fieldInfo.id}"` : ''}${fieldInfo.className ? ` class="${fieldInfo.className}"` : ''}${fieldInfo.placeholder ? ` placeholder="${fieldInfo.placeholder}"` : ''}${fieldInfo.ariaLabel ? ` aria-label="${fieldInfo.ariaLabel}"` : ''}>\n`;
 
     // Add field-specific information
     if (fieldInfo.labelText) {
@@ -138,6 +259,7 @@ function createPrompt(fieldInfo) {
       prompt += `The id is "${fieldInfo.id}". \n`;
     }
   }
+
   // Add constraints
   if (fieldInfo.required) {
     prompt += "This field is required. \n";
@@ -161,9 +283,14 @@ function createPrompt(fieldInfo) {
     prompt += "Please select the most appropriate option based on the context.";
   } else {
     // General request for text input
-    prompt += "Please provide a detailed and appropriate answer to fill this field ONLY based on the context provided. (don't answer other fields)";
-    prompt += "The answer should be complete and meaningful, while staying focused on the field's purpose. ";
-    prompt += "Make sure the response is appropriate for the field type and context and only contains the answer to the field (nothing else before or after the answer)\n";
+    if (fieldInfo.draft) {
+      prompt += `I have a draft for this field: "${fieldInfo.draft}"\n`;
+      prompt += "Please expand on this draft while maintaining its core meaning. Staying focused on the field's purpose. Do not add any other text before or after the actual answer.\n";
+    } else {
+      prompt += "Please provide a detailed and appropriate answer to fill this field ONLY based on the context provided. (don't answer other fields)";
+      prompt += "The answer should be complete and meaningful, while staying focused on the field's purpose. ";
+      prompt += "Make sure the response is appropriate for the field type and context and only contains the answer to the field (nothing else before or after the answer)\n";
+    }
   }
 
   return prompt;
@@ -208,15 +335,20 @@ async function callAnthropicApi(prompt, apiKey, body) {
   console.log('Anthropic API Prompt:', prompt);
 
   try {
+    // Get API settings including the model
+    const settings = await getApiSettings();
+    const model = settings.apiModel || 'claude-3-5-sonnet-20240620'; // Default to haiku if not set
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-3-haiku-20240307',
+        model: model,
         messages: [
           {
             role: 'user',

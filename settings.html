@@ -20,7 +20,7 @@
       margin-bottom: 5px;
       font-weight: bold;
     }
-    input[type="text"], 
+    input[type="text"],
     input[type="password"],
     select {
       width: 100%;
@@ -91,12 +91,12 @@
 </head>
 <body>
   <h1>AI Form Filler Settings</h1>
-  
+
   <div class="tab-group">
     <div class="tab active" id="tab-openai">OpenAI (ChatGPT)</div>
     <div class="tab" id="tab-anthropic">Anthropic (Claude)</div>
   </div>
-  
+
   <div class="tab-content active" id="content-openai">
     <div class="form-group">
       <label for="openai-api-key">OpenAI API Key</label>
@@ -105,7 +105,7 @@
         Enter your OpenAI API key. You can find it in your <a href="https://platform.openai.com/account/api-keys" target="_blank">OpenAI account dashboard</a>.
       </div>
     </div>
-    
+
     <div class="form-group">
       <label for="openai-model">Model</label>
       <select id="openai-model">
@@ -115,7 +115,7 @@
       </select>
     </div>
   </div>
-  
+
   <div class="tab-content" id="content-anthropic">
     <div class="form-group">
       <label for="anthropic-api-key">Anthropic API Key</label>
@@ -124,7 +124,79 @@
         Enter your Anthropic API key. You can find it in your <a href="https://console.anthropic.com/account/keys" target="_blank">Anthropic console</a>.
       </div>
     </div>
-    
+
+    <div class="tab-group">
+      <div class="tab active" id="tab-api">API Settings</div>
+      <div class="tab" id="tab-context">Context Settings</div>
+    </div>
+
+    <div class="tab-content active" id="content-api">
+      <!-- Your existing API settings content goes here -->
+    </div>
+
+    <div class="tab-content" id="content-context">
+      <h3>Form Context Settings</h3>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="saveContext" checked>
+          Save form context between sessions
+        </label>
+        <div class="helper-text">
+          This allows the extension to remember previous inputs for better form filling.
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Context Retention Period</label>
+        <select id="contextRetention">
+          <option value="1">1 day</option>
+          <option value="7" selected>1 week</option>
+          <option value="30">1 month</option>
+          <option value="90">3 months</option>
+          <option value="0">Forever</option>
+        </select>
+        <div class="helper-text">
+          How long to keep context information for each website.
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="useSessionContext" checked>
+          Use current form session context
+        </label>
+        <div class="helper-text">
+          Use information from other fields in the current form.
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="useDomainContext" checked>
+          Use previous website context
+        </label>
+        <div class="helper-text">
+          Use information from previous forms on the same website.
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Maximum Context Fields</label>
+        <input type="number" id="maxContextFields" min="1" max="20" value="5">
+        <div class="helper-text">
+          Maximum number of previous fields to include in context (1-20).
+        </div>
+      </div>
+
+      <div class="form-group context-manager-link">
+        <a href="sessions.html" target="_blank">Manage Form Sessions</a>
+        <div class="helper-text">
+          View and manage saved form sessions and context data.
+        </div>
+      </div>
+    </div>
+
     <div class="form-group">
       <label for="anthropic-model">Model</label>
       <select id="anthropic-model">
@@ -134,13 +206,13 @@
       </select>
     </div>
   </div>
-  
+
   <div class="form-group">
     <button id="save-settings">Save Settings</button>
   </div>
-  
+
   <div id="status" class="status" style="display: none;"></div>
-  
+
   <script src="settings.js"></script>
 </body>
 </html>
