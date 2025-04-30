@@ -51,20 +51,16 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
 // Listen for message from content script
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-  console.log('Background received message:', {
+  debugLog('Background received message:', {
     action: request.action,
-    tabId: sender.tab?.id,
-    frameId: sender.frameId,
-    url: sender.url,
+    sender: sender,
     timestamp: new Date().toISOString()
   });
 
   // Create a wrapper for sendResponse that logs the response
   const wrappedSendResponse = (response) => {
-    console.log('Background sending response:', {
+    debugLog('Background sending response:', {
       action: request.action,
-      tabId: sender.tab?.id,
-      frameId: sender.frameId,
       response: response,
       timestamp: new Date().toISOString()
     });
@@ -73,10 +69,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
   if (request.action === "getAiCompletion") {
     // Send to background script for API processing
-    handleAiCompletion(request.fieldInfo)
-      .then(response => {
-        wrappedSendResponse({success: true, text: response});
-      })
+    handleAiCompletion(request.fieldInfo, wrappedSendResponse)
       .catch(error => {
         console.error("AI Completion Error:", error);
         wrappedSendResponse({success: false, error: error.message});
@@ -175,41 +168,65 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   }
 
 // Handle API calls to AI services
-async function handleAiCompletion(fieldInfo) {
+async function handleAiCompletion(fieldInfo, sendResponse) {
   try {
-    // Get API settings
-    const settings = await getApiSettings();
+    debugLog('Processing AI completion request:', {
+      fieldInfo: fieldInfo,
+      timestamp: new Date().toISOString()
+    });
 
-    if (!settings.apiType || !settings.apiKey) {
-      throw new Error("API credentials not configured. Please check settings.");
+    // Get API key and model from storage
+    const { apiKey, model } = await chrome.storage.sync.get(['apiKey', 'model']);
+    if (!apiKey) {
+      throw new Error('OpenAI API key not found. Please set it in the extension settings.');
     }
 
-    // Get the current session for this domain
-    const domain = new URL(fieldInfo.pageUrl).hostname;
-    const session = await FormSessionManager.getActiveSession(domain);
+    // Create prompt with context
+    const prompt = createPrompt(fieldInfo);
+    debugLog('Created prompt:', {
+      prompt: prompt,
+      length: prompt.length,
+      timestamp: new Date().toISOString()
+    });
 
-    // Add session ID to field info if available
-    if (session) {
-      fieldInfo.sessionId = session.id;
+    // Call OpenAI API
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: model || 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 150
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      debugError('OpenAI API error:', {
+        error: error,
+        timestamp: new Date().toISOString()
+      });
+      throw new Error(`OpenAI API error: ${error.error?.message || 'Unknown error'}`);
     }
 
-    // Create appropriate prompt for the field
-    const prompt = await createPrompt(fieldInfo);
+    const data = await response.json();
+    debugLog('Received OpenAI response:', {
+      response: data,
+      timestamp: new Date().toISOString()
+    });
 
-    // Call the appropriate API
-    let response;
-    if (settings.apiType === 'openai') {
-      response = await callOpenAiApi(prompt, settings.apiKey);
-    } else if (settings.apiType === 'anthropic') {
-      response = await callAnthropicApi(prompt, settings.apiKey, fieldInfo.bodyText);
-    } else {
-      throw new Error("Unsupported API type");
-    }
-
-    return response; // Return just the text, not an object
+    const completion = data.choices[0].message.content.trim();
+    sendResponse({ success: true, text: completion });
   } catch (error) {
-    console.error("AI Completion Error:", error);
-    throw error;
+    debugError('Error in handleAiCompletion:', {
+      error: error,
+      timestamp: new Date().toISOString()
+    });
+    sendResponse({ success: false, message: error.message });
   }
 }
 

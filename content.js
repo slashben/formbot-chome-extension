@@ -7,7 +7,7 @@ let selectedQuestion = '';
 
 // Set up message listener
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-  console.log('Content received message:', {
+  debugLog('Content received message:', {
     action: request.action,
     sender: sender,
     timestamp: new Date().toISOString()
@@ -15,7 +15,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
   // Create a wrapper for sendResponse that logs the response
   const wrappedSendResponse = (response) => {
-    console.log('Content sending response:', {
+    debugLog('Content sending response:', {
       action: request.action,
       response: response,
       timestamp: new Date().toISOString()
@@ -68,6 +68,12 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 document.addEventListener('focusin', function(e) {
   if (isFormField(e.target)) {
     activeField = e.target;
+    debugLog('Active field changed:', {
+      field: activeField,
+      fieldType: activeField.tagName,
+      fieldId: activeField.id,
+      fieldName: activeField.name
+    });
 
     // If no active session, try to create one based on the form
     if (!currentFormSession && activeField) {
@@ -117,7 +123,7 @@ function startNewFormSession(formElement) {
       currentFormSession.addFormContext('formPurpose', formPurpose);
     }
 
-    console.log('New form session started:', currentFormSession.id);
+    debugLog('New form session started:', currentFormSession.id);
     return currentFormSession;
   }
 
@@ -197,12 +203,12 @@ async function handleFillCurrentField(sendResponse) {
 
     // If still no active field, respond with error
     if (!activeField) {
-      console.error('No active field found');
+      debugError('No active field found');
       sendResponse({success: false, message: "No field selected. Click on a form field first."});
       return;
     }
 
-    console.log('Active field found:', {
+    debugLog('Active field found:', {
       field: activeField,
       fieldType: activeField.tagName,
       fieldId: activeField.id,
@@ -215,14 +221,14 @@ async function handleFillCurrentField(sendResponse) {
 
     // Get field context
     const fieldInfo = getFieldInfo(activeField);
-    console.log('Field info gathered:', fieldInfo);
+    debugLog('Field info gathered:', fieldInfo);
 
     // Send to background script for API processing
     const aiResponse = await requestAiCompletion(fieldInfo);
 
     // Fill the field with AI response
     if (aiResponse) {
-      console.log('Filling field with AI response:', {
+      debugLog('Filling field with AI response:', {
         field: activeField,
         response: aiResponse
       });
@@ -238,7 +244,7 @@ async function handleFillCurrentField(sendResponse) {
       throw new Error("Failed to generate answer");
     }
   } catch (error) {
-    console.error("Error filling field:", error);
+    debugError("Error filling field:", error);
     sendResponse({success: false, message: `Error: ${error.message}`});
     fillField(activeField, "Failed to generate answer");
   } finally {
@@ -377,7 +383,7 @@ function getLabelText(field) {
 function getSurroundingText(field) {
   let context = [];
 
-  console.log('Surrounding text field:', field);
+  debugLog('Surrounding text field:', field);
 
   // 1. Get text from parent containers (expanded range)
   const parentContainers = field.closest('div, form, section, fieldset, article, main, aside, nav, header, footer, li, td, th');
@@ -386,7 +392,7 @@ function getSurroundingText(field) {
     // Remove all form fields and buttons from the clone
     const interactiveElements = clone.querySelectorAll('input, textarea, select, button, a');
     interactiveElements.forEach(el => el.remove());
-    console.log('Surrounding text clone:', clone.textContent.trim());
+    debugLog('Surrounding text clone:', clone.textContent.trim());
     context.push(clone.textContent.trim());
   }
 
@@ -459,7 +465,7 @@ function getSurroundingText(field) {
   // Combine all context, remove duplicates and empty strings
   const uniqueContext = [...new Set(context.filter(text => text.length > 0))];
 
-  console.log('Unique context:', uniqueContext);
+  debugLog('Unique context:', uniqueContext);
 
   // Join with spaces and limit total length
   return uniqueContext.join(' ').replace(/\s+/g, ' ').slice(0, 1000); // Increased limit to 1000 chars
@@ -472,7 +478,7 @@ async function requestAiCompletion(fieldInfo) {
     let retryCount = 0;
 
     function sendMessage() {
-      console.log('Content sending message:', {
+      debugLog('Content sending message:', {
         action: 'getAiCompletion',
         fieldInfo: fieldInfo,
         timestamp: new Date().toISOString()
@@ -481,7 +487,7 @@ async function requestAiCompletion(fieldInfo) {
       chrome.runtime.sendMessage(
         {action: "getAiCompletion", fieldInfo},
         function(response) {
-          console.log('Content received response:', {
+          debugLog('Content received response:', {
             action: 'getAiCompletion',
             response: response,
             lastError: chrome.runtime.lastError,
@@ -489,16 +495,16 @@ async function requestAiCompletion(fieldInfo) {
           });
 
           if (chrome.runtime.lastError) {
-            console.error('Message channel error:', chrome.runtime.lastError);
+            debugError('Message channel error:', chrome.runtime.lastError);
             if (retryCount < maxRetries) {
               retryCount++;
-              console.log(`Retrying message send (attempt ${retryCount}/${maxRetries})...`);
+              debugLog(`Retrying message send (attempt ${retryCount}/${maxRetries})...`);
               setTimeout(sendMessage, 1000); // Wait 1 second before retrying
             } else {
               reject(new Error(`Failed to connect to background script after ${maxRetries} attempts: ${chrome.runtime.lastError.message}`));
             }
           } else if (response && response.success) {
-            console.log('AI completion successful:', {
+            debugLog('AI completion successful:', {
               text: response.text,
               textLength: response.text.length
             });
@@ -517,7 +523,7 @@ async function requestAiCompletion(fieldInfo) {
 
 // Fill field with AI-generated text
 function fillField(field, text) {
-  console.log('Attempting to fill field:', {
+  debugLog('Attempting to fill field:', {
     field: field,
     fieldType: field.tagName,
     fieldId: field.id,
@@ -536,7 +542,7 @@ function fillField(field, text) {
       return currentSimilarity > bestSimilarity ? option : best;
     }, options[0]);
 
-    console.log('Select field best match:', {
+    debugLog('Select field best match:', {
       selectedOption: bestMatch,
       selectedValue: bestMatch.value
     });
@@ -590,7 +596,7 @@ function fillField(field, text) {
     }
   } else {
     // For regular input fields
-    console.log('Filling input field:', {
+    debugLog('Filling input field:', {
       field: field,
       value: text
     });
@@ -598,7 +604,7 @@ function fillField(field, text) {
   }
 
   // Verify the value was set
-  console.log('Field value after filling:', {
+  debugLog('Field value after filling:', {
     field: field,
     value: field.textContent || field.value,
     valueLength: (field.textContent || field.value).length,
@@ -639,7 +645,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.querySelector('form');
     if (form) {
       // Don't auto-start a session, but prepare for one
-      console.log('Form found on page, session will start when user interacts with a field');
+      debugLog('Form found on page, session will start when user interacts with a field');
     }
   }, 1000);
 });
@@ -662,7 +668,7 @@ function showNotification(message) {
 
 // Show loading spinner in field
 function showLoadingSpinner(field) {
-  console.log('Showing loading spinner for field:', {
+  debugLog('Showing loading spinner for field:', {
     field: field,
     fieldType: field.tagName,
     fieldId: field.id,
@@ -694,9 +700,9 @@ function showLoadingSpinner(field) {
   if (field.parentNode) {
     field.parentNode.style.position = 'relative';
     field.parentNode.appendChild(spinner);
-    console.log('Spinner added to DOM:', spinnerId);
+    debugLog('Spinner added to DOM:', spinnerId);
   } else {
-    console.error('Cannot add spinner: field has no parent node');
+    debugError('Cannot add spinner: field has no parent node');
   }
 
   // Store spinner reference
@@ -706,11 +712,11 @@ function showLoadingSpinner(field) {
 // Hide loading spinner
 function hideLoadingSpinner(field) {
   if (!field) {
-    console.error('hideLoadingSpinner called with null field');
+    debugError('hideLoadingSpinner called with null field');
     return;
   }
 
-  console.log('Hiding loading spinner for field:', {
+  debugLog('Hiding loading spinner for field:', {
     field: field,
     fieldType: field.tagName,
     fieldId: field.id,
@@ -722,7 +728,7 @@ function hideLoadingSpinner(field) {
   if (spinnerId) {
     const spinner = document.getElementById(spinnerId);
     if (spinner) {
-      console.log('Removing spinner by ID:', spinnerId);
+      debugLog('Removing spinner by ID:', spinnerId);
       spinner.remove();
     }
   }
@@ -730,7 +736,7 @@ function hideLoadingSpinner(field) {
   // Also try to remove any spinner stored in dataset
   const spinner = field.dataset.spinner;
   if (spinner && spinner.parentNode) {
-    console.log('Removing spinner from dataset reference');
+    debugLog('Removing spinner from dataset reference');
     spinner.parentNode.removeChild(spinner);
   }
 
@@ -756,7 +762,7 @@ function hideLoadingSpinner(field) {
   // Double check if any spinners are still in the DOM
   const remainingSpinners = document.querySelectorAll('[id^="formbot-spinner-"]');
   if (remainingSpinners.length > 0) {
-    console.warn('Found remaining spinners in DOM:', remainingSpinners.length);
+    debugWarn('Found remaining spinners in DOM:', remainingSpinners.length);
     remainingSpinners.forEach(spinner => spinner.remove());
   }
 }
@@ -810,7 +816,7 @@ async function handleDraftExpansion(draft) {
       throw new Error("Failed to generate answer");
     }
   } catch (error) {
-    console.error("Error expanding draft:", error);
+    debugError("Error expanding draft:", error);
     showNotification("Error expanding draft: " + error.message);
     fillField(activeField, "Failed to generate answer");
   } finally {

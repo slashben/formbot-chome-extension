@@ -24,7 +24,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js","sessions.js","form-session.js","site-storage.js"]
+      "js": ["debug.js", "content.js","sessions.js","form-session.js","site-storage.js"]
     }
   ],
   "icons": {
