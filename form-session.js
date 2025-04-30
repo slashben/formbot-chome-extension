@@ -264,5 +264,12 @@ class FormSession {
   }
 
   // Export classes for use in other files
-  window.FormSession = FormSession;
-  window.FormSessionManager = FormSessionManager;
+  if (typeof window !== 'undefined') {
+    // In content script context
+    window.FormSession = FormSession;
+    window.FormSessionManager = FormSessionManager;
+  } else {
+    // In service worker context
+    self.FormSession = FormSession;
+    self.FormSessionManager = FormSessionManager;
+  }

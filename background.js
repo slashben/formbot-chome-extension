@@ -1,5 +1,9 @@
+// Load form-session.js
+importScripts('form-session.js');
+
 // Global variable to store selected text
 let selectedText = '';
+let currentFormSession = null;
 
 // Show welcome page on first install
 chrome.runtime.onInstalled.addListener((details) => {
@@ -68,6 +72,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   };
 
   if (request.action === "getAiCompletion") {
+    // Send to background script for API processing
     handleAiCompletion(request.fieldInfo)
       .then(response => {
         wrappedSendResponse({success: true, text: response});
@@ -179,8 +184,17 @@ async function handleAiCompletion(fieldInfo) {
       throw new Error("API credentials not configured. Please check settings.");
     }
 
+    // Get the current session for this domain
+    const domain = new URL(fieldInfo.pageUrl).hostname;
+    const session = await FormSessionManager.getActiveSession(domain);
+
+    // Add session ID to field info if available
+    if (session) {
+      fieldInfo.sessionId = session.id;
+    }
+
     // Create appropriate prompt for the field
-    const prompt = createPrompt(fieldInfo);
+    const prompt = await createPrompt(fieldInfo);
 
     // Call the appropriate API
     let response;
@@ -223,6 +237,7 @@ function createPrompt(fieldInfo) {
     prompt += "Please provide an answer to this specific question.\n";
   } else {
     prompt += "These are the identifiers of the form field:\n";
+
     prompt += `The HTML element is: <${fieldInfo.tagName}${fieldInfo.type ? ` type="${fieldInfo.type}"` : ''}${fieldInfo.name ? ` name="${fieldInfo.name}"` : ''}${fieldInfo.id ? ` id="${fieldInfo.id}"` : ''}${fieldInfo.className ? ` class="${fieldInfo.className}"` : ''}${fieldInfo.placeholder ? ` placeholder="${fieldInfo.placeholder}"` : ''}${fieldInfo.ariaLabel ? ` aria-label="${fieldInfo.ariaLabel}"` : ''}>\n`;
 
     // Add field-specific information
@@ -293,7 +308,30 @@ function createPrompt(fieldInfo) {
     }
   }
 
-  return prompt;
+  // Add previous questions and answers as context if available
+  if (fieldInfo.sessionId) {
+    console.log('Session ID:', fieldInfo.sessionId);
+    return FormSessionManager.getSessionById(fieldInfo.sessionId)
+      .then(session => {
+        console.log('Session:', session);
+        if (session && session.fieldsProcessed && session.fieldsProcessed.length > 0) {
+          console.log('Session fields processed:', session.fieldsProcessed);
+          prompt += "\nHere are the previous questions and answers from this form session:\n";
+          session.fieldsProcessed.forEach((field, index) => {
+            const question = field.fieldInfo.selectedQuestion || field.fieldInfo.labelText || field.fieldInfo.ariaLabel || field.fieldInfo.placeholder || `Question ${index + 1}`;
+            const answer = field.aiResponse;
+            prompt += `Q: ${question}\nA: ${answer}\n\n`;
+          });
+        }
+        return prompt;
+      })
+      .catch(error => {
+        console.error('Error getting session context:', error);
+        return prompt;
+      });
+  }
+
+  return Promise.resolve(prompt);
 }
 
 // Call OpenAI API

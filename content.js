@@ -227,6 +227,12 @@ async function handleFillCurrentField(sendResponse) {
         response: aiResponse
       });
       fillField(activeField, aiResponse);
+
+      // Record the processed field in the session
+      if (currentFormSession) {
+        currentFormSession.recordFieldProcessed(fieldInfo, aiResponse);
+      }
+
       sendResponse({success: true, message: "Field filled successfully!"});
     } else {
       throw new Error("Failed to generate answer");
@@ -793,6 +799,12 @@ async function handleDraftExpansion(draft) {
 
       // Then fill with new content
       fillField(activeField, aiResponse);
+
+      // Record the processed field in the session
+      if (currentFormSession) {
+        currentFormSession.recordFieldProcessed(fieldInfo, aiResponse);
+      }
+
       showNotification("Draft expanded successfully!");
     } else {
       throw new Error("Failed to generate answer");
