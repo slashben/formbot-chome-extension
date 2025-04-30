@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Form Filler Settings</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #4285f4;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input[type="text"], 
+    input[type="password"],
+    select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #357ae8;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .api-options {
+      margin-top: 15px;
+      padding: 15px;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+    }
+    .tab-group {
+      display: flex;
+      margin-bottom: 15px;
+    }
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 10px;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      background-color: #f9f9f9;
+    }
+    .tab.active {
+      background-color: #4285f4;
+      color: white;
+      border-color: #4285f4;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .helper-text {
+      font-size: 0.8em;
+      color: #666;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>AI Form Filler Settings</h1>
+  
+  <div class="tab-group">
+    <div class="tab active" id="tab-openai">OpenAI (ChatGPT)</div>
+    <div class="tab" id="tab-anthropic">Anthropic (Claude)</div>
+  </div>
+  
+  <div class="tab-content active" id="content-openai">
+    <div class="form-group">
+      <label for="openai-api-key">OpenAI API Key</label>
+      <input type="password" id="openai-api-key" placeholder="sk-...">
+      <div class="helper-text">
+        Enter your OpenAI API key. You can find it in your <a href="https://platform.openai.com/account/api-keys" target="_blank">OpenAI account dashboard</a>.
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label for="openai-model">Model</label>
+      <select id="openai-model">
+        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+        <option value="gpt-4">GPT-4</option>
+        <option value="gpt-4o">GPT-4o</option>
+      </select>
+    </div>
+  </div>
+  
+  <div class="tab-content" id="content-anthropic">
+    <div class="form-group">
+      <label for="anthropic-api-key">Anthropic API Key</label>
+      <input type="password" id="anthropic-api-key" placeholder="sk-ant-...">
+      <div class="helper-text">
+        Enter your Anthropic API key. You can find it in your <a href="https://console.anthropic.com/account/keys" target="_blank">Anthropic console</a>.
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label for="anthropic-model">Model</label>
+      <select id="anthropic-model">
+        <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+        <option value="claude-3-sonnet-20240229">Claude 3 Sonnet</option>
+        <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+      </select>
+    </div>
+  </div>
+  
+  <div class="form-group">
+    <button id="save-settings">Save Settings</button>
+  </div>
+  
+  <div id="status" class="status" style="display: none;"></div>
+  
+  <script src="settings.js"></script>
+</body>
+</html>

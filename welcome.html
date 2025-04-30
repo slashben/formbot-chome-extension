@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Welcome to AI Form Filler</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 {
+      color: #4285f4;
+      text-align: center;
+    }
+    .container {
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .steps {
+      margin-top: 30px;
+    }
+    .step {
+      margin-bottom: 20px;
+      padding-left: 20px;
+      border-left: 4px solid #4285f4;
+    }
+    .step-number {
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #4285f4;
+    }
+    .highlight {
+      background-color: #e6f3ff;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+    .button {
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1em;
+      display: inline-block;
+      text-decoration: none;
+      margin-top: 20px;
+    }
+    .button:hover {
+      background-color: #357ae8;
+    }
+    .footer {
+      margin-top: 40px;
+      text-align: center;
+      font-size: 0.9em;
+      color: #666;
+    }
+    .note {
+      font-size: 0.9em;
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 10px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Welcome to AI Form Filler</h1>
+  
+  <div class="container">
+    <p>Thank you for installing AI Form Filler! This extension helps you automatically fill web forms using AI (GPT or Claude). Let's get you set up in just a few steps.</p>
+    
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">Step 1: Get an API Key</div>
+        <p>This extension requires an API key from either OpenAI or Anthropic. If you don't have one already:</p>
+        <ul>
+          <li>For <strong>OpenAI</strong>: Visit <a href="https://platform.openai.com/account/api-keys" target="_blank">OpenAI Platform</a> to create an account and generate an API Key.</li>
+          <li>For <strong>Anthropic</strong>: Visit <a href="https://console.anthropic.com/account/keys" target="_blank">Anthropic Console</a> to create an account and generate an API Key.</li>
+        </ul>
+      </div>
+      
+      <div class="step">
+        <div class="step-number">Step 2: Configure the Extension</div>
+        <p>Enter your API key in the extension settings:</p>
+        <ol>
+          <li>Click on the extension icon in your browser toolbar</li>
+          <li>Click the <span class="highlight">Settings</span> link at the bottom</li>
+          <li>Choose your preferred AI provider (OpenAI or Anthropic)</li>
+          <li>Enter your API key and select the model</li>
+          <li>Click <span class="highlight">Save Settings</span></li>
+        </ol>
+      </div>
+      
+      <div class="step">
+        <div class="step-number">Step 3: Start Using It</div>
+        <p>Once configured, using the extension is simple:</p>
+        <ol>
+          <li>Navigate to any webpage with a form</li>
+          <li>Click on a form field you want to fill</li>
+          <li>Click the extension icon to open the popup</li>
+          <li>Select <span class="highlight">Fill Current Field</span> or <span class="highlight">Fill All Fields</span></li>
+        </ol>
+      </div>
+    </div>
+    
+    <div class="note">
+      <strong>Note:</strong> All API calls are made directly from your browser to the AI service. Your API key is stored securely in your browser's extension storage and is never sent anywhere else.
+    </div>
+    
+    <div style="text-align: center;">
+      <a href="settings.html" class="button">Configure Settings Now</a>
+    </div>
+  </div>
+  
+  <div class="footer">
+    <p>For more information and assistance, refer to the documentation or contact support.</p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="#4285f4"/>
+
+  <!-- Form/document shape -->
+  <rect x="32" y="32" width="64" height="80" rx="8" fill="white"/>
+
+  <!-- Form lines -->
+  <rect x="40" y="48" width="48" height="4" rx="2" fill="#4285f4"/>
+  <rect x="40" y="60" width="48" height="4" rx="2" fill="#4285f4"/>
+  <rect x="40" y="72" width="48" height="4" rx="2" fill="#4285f4"/>
+  <rect x="40" y="84" width="32" height="4" rx="2" fill="#4285f4"/>
+
+  <!-- AI/magic sparkle -->
+  <path d="M88 32 L96 24 L104 32 L96 40 Z" fill="#FFD700"/>
+  <circle cx="96" cy="32" r="4" fill="#FFD700"/>
+</svg>
